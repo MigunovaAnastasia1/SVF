@@ -66,6 +66,11 @@ void CFLVF::initialize()
     normalizeCFLGrammar();
 
     // Initialize solver
+    initializeSolver();
+}
+
+void CFLVF::initializeSolver()
+{
     solver = new CFLSolver(graph, grammar);
 }
 
@@ -93,4 +98,9 @@ void CFLVF::finalize()
         grammar->dump("Grammar");
         graph->dump("CFLGraph");
     }
+}
+
+void MatrixVF::initializeSolver()
+{
+    solver = new MatrixSolver(graph, grammar);
 }

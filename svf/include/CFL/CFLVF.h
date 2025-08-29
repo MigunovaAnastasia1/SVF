@@ -52,6 +52,9 @@ public:
     /// Initialize the grammar, graph, solver
     virtual void initialize();
 
+    /// Initialize Solver
+    virtual void initializeSolver();
+
     /// Print grammar and graph
     virtual void finalize();
 
@@ -63,6 +66,16 @@ private:
     SVFG* svfg;
 };
 
+class MatrixVF : public CFLVF
+{
+public:
+    MatrixVF(SVFIR* ir) : CFLVF(ir)
+    {
+    }
+
+    /// Initialize Matrix Solver
+    virtual void initializeSolver();
+};
 } // End namespace SVF
 
 #endif /* INCLUDE_CFL_CFLVF_H_*/

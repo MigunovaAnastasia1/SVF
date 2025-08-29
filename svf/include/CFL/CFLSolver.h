@@ -369,6 +369,41 @@ public:
     void addArc(NodeID src, NodeID dst);
     void meld(NodeID x, TreeNode* uNode, TreeNode* vNode);
 };
-}
+
+class MatrixSolver
+{
+    public:
+        MatrixSolver(CFLGraph* _graph, CFGrammar* _grammar): graph(_graph), grammar(_grammar)
+        {
+        }
+
+        ~MatrixSolver()
+        {
+            delete graph;
+            delete grammar;
+        }
+
+        /// Start solving
+        virtual void solve();
+
+        /// Return CFL Graph
+        inline const CFLGraph* getGraph() const
+        {
+            return graph;
+        }
+
+        /// Return CFL Grammar
+        inline const CFGrammar* getGrammar() const
+        {
+            return grammar;
+        }
+
+    private:
+        CFLGraph* graph;
+        CFGrammar* grammar;
+
+};
+
+} // End namespace SVF
 
 #endif /* INCLUDE_CFL_CFLSolver_H_*/
