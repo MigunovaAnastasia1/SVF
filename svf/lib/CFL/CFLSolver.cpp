@@ -28,7 +28,6 @@
  */
 
 #include "CFL/CFLSolver.h"
-
 using namespace SVF;
 
 double CFLSolver::numOfChecks = 0;
@@ -378,4 +377,73 @@ void POCRHybridSolver::meld_h(NodeID x, TreeNode* uNode, TreeNode* vNode)
     {
         meld_h(x, newVNode, vChild);
     }
+}
+
+
+// На вход подаётся набор kind-ов: terminals/nonterminals.
+// По ним строится упорядоченное множество самих терминалов и нетерминалов уже с учётом аттрибутов.
+// Returns size of filled enumerated_symbols.
+size_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, std::unordered_map<Symbol, size_t>& enumerated_symbols){
+    uint64_t index = 0;
+    Set<Kind> attributedKinds = grammar->getAttrSyms();
+    for (auto str2kind: kinds){
+        Symbol sym;
+        Kind kind = str2kind.second;
+        sym.kind = kind;
+        if (attributedKinds.find(kind) != attributedKinds.end()){
+            for(auto attri: grammar->getKindToAttrsMap[kind]){
+                sym.attribute = attri;
+                enumerated_symbols[sym] = index++;
+            }
+        } else{
+            enumerated_symbols[sym] = index++
+        }
+    }
+    return enumerated_symbols;
+}
+
+void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, size_t totalTerm)
+{
+    using VectorPair = std::pair<std::vector<uint64_t>, std::vector<uint64_t>>;
+    std::array<VectorPair> nodeID_pairs(totalTerm);
+    uint64_t totalNode = graph->getTotalNodeNum(); // uint32_t -> uint64_t
+
+    for (auto edge: graph->getCFLEdges()){
+        uint64_t term_index = enumerated_terminals.find(edge->getEdgeKind());
+        nodeID_pairs[term_index].first.push_back(edge->getSrcNode()->getId());
+        nodeID_pairs[term_index].second.push_back(edge->getDstNode()->getId());
+    }
+
+    for (int i = 0; i < totalTerm; ++i){
+        uint64_t* row_indexes = nodeID_pairs[i].first().data();
+        uint64_t* column_indexes = nodeID_pairs[i].second().data();
+        uint64_t nvals = nodeID_pairs[i].first().size();
+        bool values[nvals];
+        std::fill_n(values, nvals, true);
+        GRB_TRY(GrB_Matrix_new(&adj_matrices[i], GrB_BOOL, totalNode, totalNode));
+        GRB_TRY(GrB_Matrix_build(adj_matrices[i], row_indexes, column_indexes, values, nvals, nullptr));
+    }
+
+}
+
+void MatrixSolver::grammarSVF2LAGraph(/* массив правила в LAGraph */)
+{
+
+}
+
+void MatrixSolver::graphLAGraph2SVF(/* указатель на граф, который необходимо заполнить */)
+{
+
+}
+
+void MatrixSolver::solve()
+{
+    int64_t totalTerm = enumerate(grammar->getTerminals(), enumerated_terminals);
+    int64_t totalNonterm = enumerate(grammar->getNonterminals(), enumerated_nonterminals);
+
+    //init LAGraph objects
+    GrB_Matrix adj_matrices[totalTerm];
+    graphSVF2LAGraph(adj_matrices, totalTerm);
+
+
 }

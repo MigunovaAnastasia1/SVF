@@ -373,6 +373,8 @@ public:
 class MatrixSolver
 {
     public:
+        typedef GrammarBase::Symbol Symbol;
+        typedef GrammarBase::Kind Kind;
         MatrixSolver(CFLGraph* _graph, CFGrammar* _grammar): graph(_graph), grammar(_grammar)
         {
         }
@@ -384,8 +386,11 @@ class MatrixSolver
         }
 
         /// Start solving
-        virtual void solve();
-
+        void solve();
+        std::vector<Symbol> enumerate(Map<std::string, Kind> kinds);
+        void graphSVF2LAGraph(/* массив матриц в LAGraph */);
+        void grammarSVF2LAGraph(/* массив правила в LAGraph */);
+        void graphLAGraph2SVF(/* указатель на граф, который необходимо заполнить */);
         /// Return CFL Graph
         inline const CFLGraph* getGraph() const
         {
@@ -401,6 +406,8 @@ class MatrixSolver
     private:
         CFLGraph* graph;
         CFGrammar* grammar;
+        std::unordered_map<Symbol, uint64_t> enumerated_terminals;
+        std::unordered_map<Symbol, uint64_t> enumerated_nonterminals;
 
 };
 
