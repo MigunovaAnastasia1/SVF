@@ -402,9 +402,9 @@ size_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, std::unordered_map<
     return enumerated_symbols;
 }
 
-void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, size_t totalTerm)
+void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm)
 {
-    using VectorPair = std::pair<std::vector<uint64_t>, std::vector<uint64_t>>;
+    using VectorPair = std::pair<std::vector<uint32_t>, std::vector<uint32_t>>;
     std::array<VectorPair> nodeID_pairs(totalTerm);
     uint64_t totalNode = graph->getTotalNodeNum(); // uint32_t -> uint64_t
 
@@ -421,18 +421,61 @@ void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, size_t totalTerm)
         bool values[nvals];
         std::fill_n(values, nvals, true);
         GRB_TRY(GrB_Matrix_new(&adj_matrices[i], GrB_BOOL, totalNode, totalNode));
-        GRB_TRY(GrB_Matrix_build(adj_matrices[i], row_indexes, column_indexes, values, nvals, nullptr));
+        GRB_TRY(GrB_Matrix_build(adj_matrices[i], row_indexes, column_indexes, values, nvals, nullptr)); // uint32_t -> uint64_t в индексах
     }
 
 }
 
-void MatrixSolver::grammarSVF2LAGraph(/* массив правила в LAGraph */)
+void MatrixSolver::grammarSVF2LAGraph(const LAGraph_rule_WCNF *rules)
 {
+    int index = 0;
+    for(auto pro: grammar->getEpsilonProds()){
+        rules[index].nonterm = enumerated_nonterminals.find(pro[0]); // uint32 -> int32
+        rules[index].prod_A = -1;
+        rules[index].prod_B = -1;
+        rules[index].index = 0;
+        index++;
+    }
 
+    for (auto sym2prods: grammar->getSingleRHSToProds())
+    {
+        for (auto pro: sym2prods.second)
+        {
+            rules[index].nonterm = enumerated_nonterminals.find(pro[0]);
+            rules[index].prod_A = enumerated_terminals.find(pro[1]);
+            rules[index].prod_B = -1;
+            rules[index].index = 0;
+            index++;
+        }
+    }
+
+    for (auto sym2prods: grammar->getFirstRHSToProds())
+    {
+        for (auto pro: sym2prods.second)
+        {
+            rules[index].nonterm = enumerated_nonterminals.find(pro[0]);
+            rules[index].prod_A = enumerated_nonterminals.find(pro[1]);
+            rules[index].prod_B = enumerated_nonterminals.find(pro[2]);
+            rules[index].index = 0;
+            index++;
+        }
+    }
 }
 
-void MatrixSolver::graphLAGraph2SVF(/* указатель на граф, который необходимо заполнить */)
+void MatrixSolver::graphLAGraph2SVF(GrB_Matrix *nonterm_matrices, int64_t totalNonterm)
 {
+    for(int i = 0; i < totalNonterm; i++){
+
+        uint64_t nvals;
+        GRB_TRY(GrB_Matrix_nvals(&nvals, nonterm_matrices[i]));
+        uint64_t row_indexes[nvals];
+        uint64_t column_indexes[nvals];
+        bool values[nvals];
+        GRB_TRY(GrB_Matrix_extractTuples(row_indexes, column_indexes, values, &nvals, nonterm_matrices[i]));
+        for(int j = 0; j < nvals; j++){
+            addCFLEdge(graph->getGNode(row_indexes[j]), graph->getGNode(column_indexes[j]), enumerated_nonterminals.find(i));
+        }
+    }
 
 }
 
@@ -440,10 +483,23 @@ void MatrixSolver::solve()
 {
     int64_t totalTerm = enumerate(grammar->getTerminals(), enumerated_terminals);
     int64_t totalNonterm = enumerate(grammar->getNonterminals(), enumerated_nonterminals);
+    int64_t totalRules = 0;
+    for (auto sym2prods: grammar->getRawProductions()){
+        totalRules += sym2prods.second.size();
+    }
 
     //init LAGraph objects
     GrB_Matrix adj_matrices[totalTerm];
+    GrB_Matrix *new_nonterm_edges;
+    const LAGraph_rule_WCNF rules[totalRules];
+    char* msg;
     graphSVF2LAGraph(adj_matrices, totalTerm);
-
+    grammarSVF2LAGraph(rules);
+    LAGraph_CFL_reachability(new_nonterm_edges, adj_matrices, totalTerm, totalNonterm, rules, totalRules, msg);
+    if (msg != nullptr){
+        assert(false && msg);
+        abort();
+    }
+    graphLAGraph2SVF(new_nonterm_edges);
 
 }
