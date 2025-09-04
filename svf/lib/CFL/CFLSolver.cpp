@@ -495,7 +495,7 @@ void MatrixSolver::solve()
     char* msg;
     graphSVF2LAGraph(adj_matrices, totalTerm);
     grammarSVF2LAGraph(rules);
-    LAGraph_CFL_reachability(new_nonterm_edges, adj_matrices, totalTerm, totalNonterm, rules, totalRules, msg);
+    LAGRAPH_TRY(LAGraph_CFL_reachability(new_nonterm_edges, adj_matrices, totalTerm, totalNonterm, rules, totalRules, msg));
     if (msg != nullptr){
         assert(false && msg);
         abort();
