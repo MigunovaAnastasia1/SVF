@@ -383,8 +383,8 @@ void POCRHybridSolver::meld_h(NodeID x, TreeNode* uNode, TreeNode* vNode)
 // На вход подаётся набор kind-ов: terminals/nonterminals.
 // По ним строится упорядоченное множество самих терминалов и нетерминалов уже с учётом аттрибутов.
 // Returns size of filled enumerated_symbols.
-size_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, std::unordered_map<Symbol, size_t>& enumerated_symbols){
-    uint64_t index = 0;
+size_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, std::SymbolMap<Symbol, uint32_t>& enumerated_symbols){
+    uint32_t index = 0;
     Set<Kind> attributedKinds = grammar->getAttrSyms();
     for (auto str2kind: kinds){
         Symbol sym;

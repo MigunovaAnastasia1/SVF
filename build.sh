@@ -14,7 +14,7 @@
 # Dependencies include: build-essential libncurses5 libncurses-dev cmake zlib1g-dev
 set -e # exit on first error
 
-jobs=8
+jobs=3
 
 #########
 # Variables and Paths
@@ -301,7 +301,7 @@ cmake -D CMAKE_BUILD_TYPE:STRING="${BUILD_TYPE}"   \
     -DSVF_SANITIZE="${SVF_SANITIZER}"              \
     -DBUILD_SHARED_LIBS=${BUILD_DYN_LIB}            \
     -S "${SVFHOME}" -B "${BUILD_DIR}"
-cmake --build "${BUILD_DIR}" -j ${jobs}
+cmake --build "${BUILD_DIR}" -j ${jobs}  2>&1 | tee build_output.log
 
 ########
 # Set up environment variables of SVF

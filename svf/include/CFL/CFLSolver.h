@@ -33,6 +33,9 @@
 #include "Graphs/CFLGraph.h"
 #include "CFL/CFGrammar.h"
 #include "Util/WorkList.h"
+extern "C" {
+    #include "CFL/LAGraphMini.h"
+}
 
 using namespace std;
 
@@ -373,7 +376,6 @@ public:
 class MatrixSolver
 {
     public:
-        typedef GrammarBase::Symbol Symbol;
         typedef GrammarBase::Kind Kind;
         MatrixSolver(CFLGraph* _graph, CFGrammar* _grammar): graph(_graph), grammar(_grammar)
         {
@@ -387,10 +389,19 @@ class MatrixSolver
 
         /// Start solving
         void solve();
-        std::vector<Symbol> enumerate(Map<std::string, Kind> kinds);
-        void graphSVF2LAGraph(/* массив матриц в LAGraph */);
-        void grammarSVF2LAGraph(/* массив правила в LAGraph */);
-        void graphLAGraph2SVF(/* указатель на граф, который необходимо заполнить */);
+
+        /// Construct a set of terminals/nonterminals (taking into account the attributes), enumerate it and return its size
+        uint64_t enumerate(Map<std::string, Kind> kinds, CFGrammar::SymbolMap<Label, uint32_t>& enumerated_symbols);
+
+        /// Represent labeled graph as a set of adjacency matrices
+        void graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm);
+
+        /// Convert SVF grammar into LAGraph grammar
+        void grammarSVF2LAGraph(const LAGraph_rule_WCNF *rules);
+
+        /// Convert LAGraph grammar into SVF grammar
+        void graphLAGraph2SVF(GrB_Matrix *nonterm_matrices, int64_t totalNonterm);
+
         /// Return CFL Graph
         inline const CFLGraph* getGraph() const
         {
@@ -406,8 +417,8 @@ class MatrixSolver
     private:
         CFLGraph* graph;
         CFGrammar* grammar;
-        std::unordered_map<Symbol, uint64_t> enumerated_terminals;
-        std::unordered_map<Symbol, uint64_t> enumerated_nonterminals;
+        CFGrammar::SymbolMap<Label, uint64_t> enumerated_terminals;
+        CFGrammar::SymbolMap<Label, uint64_t> enumerated_nonterminals;
 
 };
 

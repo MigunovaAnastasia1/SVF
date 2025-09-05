@@ -751,6 +751,12 @@ const Option<bool> Options::CFLSVFG(
     false
 );
 
+const Option<bool> Options::MatrixVF(
+    "matrix-cflsvfg",
+    "When explicit to true, cfl graph builder will transfer SVFG to CFL Reachability and matrix CFL-solver will be used.",
+    false
+);
+
 const Option<bool> Options::POCRAlias(
     "pocr-alias",
     "When explicit to true, cfl data builder will transfer CFL graph to CFLData.",

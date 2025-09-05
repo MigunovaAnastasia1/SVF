@@ -70,6 +70,8 @@ int main(int argc, char ** argv)
     // Determines which type of analysis to run based on the options and sets up cfl accordingly
     if (Options::CFLSVFG())
         cfl = std::make_unique<CFLVF>(svfir);
+    else if (Options::MatrixVF())
+        cfl = std::make_unique<MatrixVF>(svfir);
     else if (Options::POCRHybrid())
         cfl = std::make_unique<POCRHybrid>(svfir);
     else if (Options::POCRAlias())

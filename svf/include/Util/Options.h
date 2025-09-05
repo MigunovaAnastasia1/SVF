@@ -231,6 +231,7 @@ public:
     static const Option<bool> FlexSymMap;
     static const Option<bool>  PEGTransfer;
     static const Option<bool>  CFLSVFG;
+    static const Option<bool>  MatrixVF;
     static const Option<bool> POCRAlias;
     static const Option<bool> POCRHybrid;
     static const Option<bool> Customized;
