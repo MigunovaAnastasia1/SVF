@@ -75,6 +75,12 @@ public:
 
     /// Initialize Matrix Solver
     virtual void initializeSolver();
+
+    /// Solving CFL Reachability
+    void solve();
+
+private:
+    MatrixSolver* matrix_solver;
 };
 } // End namespace SVF
 

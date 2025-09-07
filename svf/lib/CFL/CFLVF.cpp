@@ -88,7 +88,6 @@ void CFLVF::checkParameter()
     }
 }
 
-
 void CFLVF::finalize()
 {
     if(Options::PrintCFL())
@@ -100,7 +99,18 @@ void CFLVF::finalize()
     }
 }
 
+void MatrixVF::solve()
+{
+    // Start solving
+    double start = stat->getClk(true);
+
+    matrix_solver->solve();
+
+    double end = stat->getClk(true);
+    timeOfSolving += (end - start) / TIMEINTERVAL;
+}
+
 void MatrixVF::initializeSolver()
 {
-    solver = new MatrixSolver(graph, grammar);
+    matrix_solver = new MatrixSolver(graph, grammar);
 }

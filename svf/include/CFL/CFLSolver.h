@@ -397,7 +397,7 @@ class MatrixSolver
         void graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm);
 
         /// Convert SVF grammar into LAGraph grammar
-        void grammarSVF2LAGraph(const LAGraph_rule_WCNF *rules);
+        void grammarSVF2LAGraph(LAGraph_rule_WCNF *rules);
 
         /// Convert LAGraph grammar into SVF grammar
         void graphLAGraph2SVF(GrB_Matrix *nonterm_matrices, int64_t totalNonterm);
@@ -417,8 +417,8 @@ class MatrixSolver
     private:
         CFLGraph* graph;
         CFGrammar* grammar;
-        CFGrammar::SymbolMap<Label, uint64_t> enumerated_terminals;
-        CFGrammar::SymbolMap<Label, uint64_t> enumerated_nonterminals;
+        CFGrammar::SymbolMap<Label, uint32_t> enumerated_terminals;
+        CFGrammar::SymbolMap<Label, uint32_t> enumerated_nonterminals;
 
 };
 

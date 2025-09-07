@@ -383,54 +383,54 @@ void POCRHybridSolver::meld_h(NodeID x, TreeNode* uNode, TreeNode* vNode)
 // На вход подаётся набор kind-ов: terminals/nonterminals.
 // По ним строится упорядоченное множество самих терминалов и нетерминалов уже с учётом аттрибутов.
 // Returns size of filled enumerated_symbols.
-size_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, std::SymbolMap<Symbol, uint32_t>& enumerated_symbols){
+uint64_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, CFGrammar::SymbolMap<Label, uint32_t>& enumerated_symbols){
     uint32_t index = 0;
     Set<Kind> attributedKinds = grammar->getAttrSyms();
     for (auto str2kind: kinds){
-        Symbol sym;
+        Label sym;
         Kind kind = str2kind.second;
         sym.kind = kind;
         if (attributedKinds.find(kind) != attributedKinds.end()){
-            for(auto attri: grammar->getKindToAttrsMap[kind]){
+            for(auto attri: grammar->getKindToAttrsMap().at(kind)){
                 sym.attribute = attri;
                 enumerated_symbols[sym] = index++;
             }
         } else{
-            enumerated_symbols[sym] = index++
+            enumerated_symbols[sym] = index++;
         }
     }
-    return enumerated_symbols;
+    return index;
 }
 
 void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm)
 {
-    using VectorPair = std::pair<std::vector<uint32_t>, std::vector<uint32_t>>;
-    std::array<VectorPair> nodeID_pairs(totalTerm);
+    typedef std::pair<std::vector<uint64_t>, std::vector<uint64_t>> VectorPair;
+    std::vector<VectorPair> nodeID_pairs(totalTerm);
     uint64_t totalNode = graph->getTotalNodeNum(); // uint32_t -> uint64_t
 
     for (auto edge: graph->getCFLEdges()){
-        uint64_t term_index = enumerated_terminals.find(edge->getEdgeKind());
+        uint64_t term_index = enumerated_terminals.at(edge->getEdgeKind());
         nodeID_pairs[term_index].first.push_back(edge->getSrcNode()->getId());
         nodeID_pairs[term_index].second.push_back(edge->getDstNode()->getId());
     }
 
     for (int i = 0; i < totalTerm; ++i){
-        uint64_t* row_indexes = nodeID_pairs[i].first().data();
-        uint64_t* column_indexes = nodeID_pairs[i].second().data();
-        uint64_t nvals = nodeID_pairs[i].first().size();
+        uint64_t* row_indexes = (nodeID_pairs[i]).first.data();
+        uint64_t* column_indexes = (nodeID_pairs[i]).second.data();
+        uint64_t nvals = (nodeID_pairs[i]).first.size();
         bool values[nvals];
         std::fill_n(values, nvals, true);
         GRB_TRY(GrB_Matrix_new(&adj_matrices[i], GrB_BOOL, totalNode, totalNode));
-        GRB_TRY(GrB_Matrix_build(adj_matrices[i], row_indexes, column_indexes, values, nvals, nullptr)); // uint32_t -> uint64_t в индексах
+        GRB_TRY(GrB_Matrix_build_BOOL(adj_matrices[i], row_indexes, column_indexes, values, nvals, nullptr)); // uint32_t -> uint64_t в индексах
     }
 
 }
 
-void MatrixSolver::grammarSVF2LAGraph(const LAGraph_rule_WCNF *rules)
+void MatrixSolver::grammarSVF2LAGraph(LAGraph_rule_WCNF *rules)
 {
     int index = 0;
     for(auto pro: grammar->getEpsilonProds()){
-        rules[index].nonterm = enumerated_nonterminals.find(pro[0]); // uint32 -> int32
+        rules[index].nonterm = enumerated_nonterminals.at(pro[0]); // uint32 -> int32
         rules[index].prod_A = -1;
         rules[index].prod_B = -1;
         rules[index].index = 0;
@@ -441,8 +441,8 @@ void MatrixSolver::grammarSVF2LAGraph(const LAGraph_rule_WCNF *rules)
     {
         for (auto pro: sym2prods.second)
         {
-            rules[index].nonterm = enumerated_nonterminals.find(pro[0]);
-            rules[index].prod_A = enumerated_terminals.find(pro[1]);
+            rules[index].nonterm = enumerated_nonterminals.at(pro[0]);
+            rules[index].prod_A = enumerated_terminals.at(pro[1]);
             rules[index].prod_B = -1;
             rules[index].index = 0;
             index++;
@@ -453,9 +453,9 @@ void MatrixSolver::grammarSVF2LAGraph(const LAGraph_rule_WCNF *rules)
     {
         for (auto pro: sym2prods.second)
         {
-            rules[index].nonterm = enumerated_nonterminals.find(pro[0]);
-            rules[index].prod_A = enumerated_nonterminals.find(pro[1]);
-            rules[index].prod_B = enumerated_nonterminals.find(pro[2]);
+            rules[index].nonterm = enumerated_nonterminals.at(pro[0]);
+            rules[index].prod_A = enumerated_nonterminals.at(pro[1]);
+            rules[index].prod_B = enumerated_nonterminals.at(pro[2]);
             rules[index].index = 0;
             index++;
         }
@@ -471,9 +471,9 @@ void MatrixSolver::graphLAGraph2SVF(GrB_Matrix *nonterm_matrices, int64_t totalN
         uint64_t row_indexes[nvals];
         uint64_t column_indexes[nvals];
         bool values[nvals];
-        GRB_TRY(GrB_Matrix_extractTuples(row_indexes, column_indexes, values, &nvals, nonterm_matrices[i]));
-        for(int j = 0; j < nvals; j++){
-            addCFLEdge(graph->getGNode(row_indexes[j]), graph->getGNode(column_indexes[j]), enumerated_nonterminals.find(i));
+        GRB_TRY(GrB_Matrix_extractTuples_BOOL(row_indexes, column_indexes, values, &nvals, nonterm_matrices[i]));
+        for(uint64_t j = 0; j < nvals; j++){
+            graph->addCFLEdge(graph->getGNode(row_indexes[j]), graph->getGNode(column_indexes[j]), enumerated_nonterminals.at(i));
         }
     }
 
@@ -490,9 +490,9 @@ void MatrixSolver::solve()
 
     //init LAGraph objects
     GrB_Matrix adj_matrices[totalTerm];
-    GrB_Matrix *new_nonterm_edges;
-    const LAGraph_rule_WCNF rules[totalRules];
-    char* msg;
+    GrB_Matrix new_nonterm_edges[totalNonterm];
+    LAGraph_rule_WCNF rules[totalRules];
+    char* msg = NULL;
     graphSVF2LAGraph(adj_matrices, totalTerm);
     grammarSVF2LAGraph(rules);
     LAGRAPH_TRY(LAGraph_CFL_reachability(new_nonterm_edges, adj_matrices, totalTerm, totalNonterm, rules, totalRules, msg));
@@ -500,6 +500,6 @@ void MatrixSolver::solve()
         assert(false && msg);
         abort();
     }
-    graphLAGraph2SVF(new_nonterm_edges);
+    graphLAGraph2SVF(new_nonterm_edges, totalNonterm);
 
 }

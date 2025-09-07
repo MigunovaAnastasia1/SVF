@@ -225,6 +225,36 @@ message(
 )
 
 # =================================================================================
+# SVF LAGraphX dependency finding
+# =================================================================================
+
+# Find the LAGraphConfig.cmake package to extract a LAGraphX version from and find GraphBLAS as a dependency 
+find_package(LAGraph REQUIRED)
+
+# Find LAGraphX using find_library (there is no LAGraphXConfig.cmake package)
+find_library(LAGRAPHX_LIBRARIES NAMES liblagraphx.so PATHS /usr/local/lib)
+
+message(
+  STATUS
+    "Using GraphBLAS package:
+  GraphBLAS major version:     ${GraphBLAS_VERSION_MAJOR}
+  GraphBLAS minor version:     ${GraphBLAS_VERSION_MINOR}
+  GraphBLAS patch version:     ${GraphBLAS_VERSION_PATCH}
+  GraphBLAS version string:    ${GraphBLAS_VERSION}
+  GraphBLAS link libraries:    ${GRAPHBLAS_LIBRARIES}"
+)
+
+message(
+  STATUS
+    "Using LAGraphX package:
+  LAGraphX major version:     ${LAGraph_VERSION_MAJOR}
+  LAGraphX minor version:     ${LAGraph_VERSION_MINOR}
+  LAGraphX patch version:     ${LAGraph_VERSION_PATCH}
+  LAGraphX version string:    ${LAGraph_VERSION}
+  LAGraphX link libraries:    ${LAGRAPHX_LIBRARIES}"
+)
+
+# =================================================================================
 # SVF configuration interface library
 # =================================================================================
 
@@ -261,8 +291,10 @@ target_link_directories(
 # Expose build-tree extapi.bc to in-tree users of SVF (i.e. building SVF as subproject)
 target_compile_definitions(SvfFlags INTERFACE $<BUILD_INTERFACE:SVF_INSTALL_EXTAPI_BC="${SVF_BUILD_EXTAPI_BC}">)
 
-# Add Z3 as a public dependency on the interface to ensure any users inherit the dependency
+# Add Z3, GraphBLAS, LAGraphX as a public dependencies on the interface to ensure any users inherit the dependencies
 target_link_libraries(SvfFlags INTERFACE ${Z3_LIBRARIES})
+target_link_libraries(SvfFlags INTERFACE ${GRAPHBLAS_LIBRARIES})
+target_link_libraries(SvfFlags INTERFACE ${LAGRAPHX_LIBRARIES})
 
 # Ensure the interface library is exposed during installation
 install(TARGETS SvfFlags EXPORT SVFTargets)

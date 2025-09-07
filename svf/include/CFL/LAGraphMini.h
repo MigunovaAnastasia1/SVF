@@ -1,3 +1,78 @@
+#define GRB_CATCH(status)                       \
+{}                                              \
+
+#define LAGRAPH_CATCH(status)                   \
+{}                                              \
+
+#define GRB_TRY(GrB_method)                     \
+{                                               \
+    GrB_Info LG_GrB_Info = GrB_method ;         \
+    if (LG_GrB_Info < GrB_SUCCESS)              \
+    {                                           \
+        GRB_CATCH (LG_GrB_Info) ;               \
+    }                                           \
+}
+
+#define LAGRAPH_TRY(LAGraph_method)             \
+{                                               \
+    int LG_status = LAGraph_method ;            \
+    if (LG_status < GrB_SUCCESS)                \
+    {                                           \
+        LAGRAPH_CATCH (LG_status) ;             \
+    }                                           \
+}
+
+// GB_GLOBAL: for declaring global variables visible to the user application.
+// These are not used for functions, just global variables like the predefined
+// operators (GrB_PLUS_FP32), types, monoids, semirings, and descriptors.
+#if defined (_MSC_VER) && !(defined (__INTEL_COMPILER) || defined(__INTEL_CLANG_COMPILER))
+    #if defined ( GB_DLL_EXPORT )
+        // Compiling SuiteSparse:GraphBLAS as a Windows DLL, exporting symbols
+        // to user apps.
+        #define GB_GLOBAL extern __declspec ( dllexport )
+    #elif defined ( GB_STATIC )
+        // Compiling the user application on Windows, importing symbols from
+        // a static GraphBLAS library on Windows. The user application must
+        // define GB_STATIC (e.g., with the pre-processor flag -DGB_STATIC) for
+        // all compilation units that include "GraphBLAS.h".
+        #define GB_GLOBAL extern
+    #else
+        // Compiling the user application on Windows, importing symbols from
+        // the SuiteSparse:GraphBLAS DLL.  This is the default.
+        #define GB_GLOBAL extern __declspec ( dllimport )
+    #endif
+#else
+    // for other compilers
+    #define GB_GLOBAL extern
+#endif
+
+typedef uint64_t GrB_Index ;
+typedef struct GB_Matrix_opaque       *GrB_Matrix ;
+typedef struct GB_Type_opaque         *GrB_Type ;
+typedef struct GB_BinaryOp_opaque     *GrB_BinaryOp ;
+typedef GB_Type_opaque *GrB_Type ;
+
+typedef struct {
+    int32_t nonterm; // prod_A != -1 && prod_B != -1 => Type of Rule is [Variable -> AB]
+    int32_t prod_A;  // prod_A == -1 && prod_B == -1 => Type of Rule is [Variable -> eps]
+    int32_t prod_B;  // prod_A != -1 && prod_B == -1 => Type of Rule is [Variable -> term]
+    int32_t index;   // For rules that can be grouped by index
+} LAGraph_rule_WCNF;
+
+GB_GLOBAL GrB_Type
+    GrB_BOOL   ,        // in C: bool
+    GrB_INT8   ,        // in C: int8_t
+    GrB_INT16  ,        // in C: int16_t
+    GrB_INT32  ,        // in C: int32_t
+    GrB_INT64  ,        // in C: int64_t
+    GrB_UINT8  ,        // in C: uint8_t
+    GrB_UINT16 ,        // in C: uint16_t
+    GrB_UINT32 ,        // in C: uint32_t
+    GrB_UINT64 ,        // in C: uint64_t
+    GrB_FP32   ,        // in C: float
+    GrB_FP64   ;        // in C: double
+
+
 typedef enum    // GrB_Info
 {
 
@@ -40,18 +115,6 @@ typedef enum    // GrB_Info
 }
 GrB_Info ;
 
-typedef uint64_t GrB_Index ;
-typedef struct GB_Matrix_opaque       *GrB_Matrix ;
-typedef struct GB_Type_opaque         *GrB_Type ;
-typedef struct GB_BinaryOp_opaque     *GrB_BinaryOp ;
-
- typedef struct {
-    int32_t nonterm; // prod_A != -1 && prod_B != -1 => Type of Rule is [Variable -> AB]
-    int32_t prod_A;  // prod_A == -1 && prod_B == -1 => Type of Rule is [Variable -> eps]
-    int32_t prod_B;  // prod_A != -1 && prod_B == -1 => Type of Rule is [Variable -> term]
-    int32_t index;   // For rules that can be grouped by index
- } LAGraph_rule_WCNF;
-
     GrB_Info GrB_Matrix_new     // create a new matrix with no entries
 (
     GrB_Matrix *A,          // handle of matrix to create
@@ -60,7 +123,7 @@ typedef struct GB_BinaryOp_opaque     *GrB_BinaryOp ;
     GrB_Index ncols         // (nrows and ncols must be <= GrB_INDEX_MAX+1)
 ) ;
 
- GrB_Info GrB_Matrix_build  // build a matrix from (I,J,X) tuples
+ GrB_Info GrB_Matrix_build_BOOL  // build a matrix from (I,J,X) tuples
   (
       GrB_Matrix C,               // matrix to build
       const GrB_Index *I,         // array of row indices of tuples
@@ -76,14 +139,14 @@ GrB_Info GrB_Matrix_nvals   // get the number of entries in a matrix
     const GrB_Matrix A      // matrix to query
 ) ;
 
-GrB_Info GrB_Matrix_extractTuples     // [I,J,X] = find (A)
+GrB_Info GrB_Matrix_extractTuples_BOOL     // [I,J,X] = find (A)
 (
       uint64_t *I,            // array for returning row indices of tuples
       uint64_t *J,            // array for returning col indices of tuples
       bool *X,              // array for returning values of tuples
       GrB_Index *nvals,       // I,J,X size on input; # tuples on output
       const GrB_Matrix A      // matrix to extract tuples from
-  ) ;
+) ;
 
 GrB_Info LAGraph_CFL_reachability
 (
