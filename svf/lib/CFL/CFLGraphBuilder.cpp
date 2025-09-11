@@ -76,6 +76,17 @@ void CFLGraphBuilder::buildlabelToKindMap(GrammarBase *grammar)
             kindToLabelMap.insert(make_pair(pairV.second, pairV.first));
         }
     }
+    printf("labelToKindMap:\n");
+    for(auto lab2kind: labelToKindMap)
+    {
+        printf("Label %s to kind %d\n", lab2kind.first.c_str(), lab2kind.second);
+    }
+
+    printf("kindToLabelMap:\n");
+    for(auto kind2label: kindToLabelMap)
+    {
+        printf("Kind %d to label %s\n", kind2label.first, kind2label.second.c_str());
+    }
 }
 
 /// add src and dst node from file
@@ -498,10 +509,13 @@ CFLGraph* VFCFLGraphBuilder::buildBigraph(SVFG *graph, Kind startKind, GrammarBa
             {
                 edgeLabel = 0;
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getSrcID()), cflGraph->getGNode(edge->getDstID()), edgeLabel);
+                printf("a -  %s \n", (grammar->symToStrDump(edgeLabel)).c_str());
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getSrcID()), cflGraph->getGNode(edge->getDstID()), edgeLabel);
+                printf("a (второй раз) -  %s \n", (grammar->symToStrDump(edgeLabel)).c_str());
                 std::string label = kindToLabelMap[edge->getEdgeKind()];
                 label.append("bar");
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getDstID()), cflGraph->getGNode(edge->getSrcID()), labelToKindMap[label]);
+                printf("abar -  %s \n", (grammar->symToStrDump(labelToKindMap[label])).c_str());
             }
             // Get 'call' edge : CallDirVF || CallIndVF
             else if ( edge->getEdgeKind() == VFGEdge::CallDirVF )
@@ -511,10 +525,12 @@ CFLGraph* VFCFLGraphBuilder::buildBigraph(SVFG *graph, Kind startKind, GrammarBa
                 CFGrammar::Attribute attr =  attributedEdge->getCallSiteId();
                 addAttribute(edgeLabel, attr);
                 edgeLabel = CFGrammar::getAttributedKind(attr, edgeLabel);
+                printf("call -  %s \n", (grammar->symToStrDump(edgeLabel)).c_str());
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getSrcID()), cflGraph->getGNode(edge->getDstID()), edgeLabel);
                 std::string label = kindToLabelMap[edgeLabel];
                 label.append("bar");   // for example Gep_i should be Gepbar_i, not Gep_ibar
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getDstID()), cflGraph->getGNode(edge->getSrcID()), CFGrammar::getAttributedKind(attr, labelToKindMap[label]));
+                printf("callbar -  %s ; %s_%d\n",  (grammar->symToStrDump(CFGrammar::getAttributedKind(attr, labelToKindMap[label]))).c_str(), label.c_str(), attr);
                 addAttribute(labelToKindMap[label], attr);
             }
             // Get 'call' edge : CallIndVF
@@ -525,10 +541,12 @@ CFLGraph* VFCFLGraphBuilder::buildBigraph(SVFG *graph, Kind startKind, GrammarBa
                 CFGrammar::Attribute attr =  attributedEdge->getCallSiteId();
                 addAttribute(edgeLabel, attr);
                 edgeLabel = CFGrammar::getAttributedKind(attr, edgeLabel);
+                printf("call -  %s \n", (grammar->symToStrDump(edgeLabel)).c_str());
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getSrcID()), cflGraph->getGNode(edge->getDstID()), edgeLabel);
                 std::string label = kindToLabelMap[edgeLabel];
                 label.append("bar");   // for example Gep_i should be Gepbar_i, not Gep_ibar
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getDstID()), cflGraph->getGNode(edge->getSrcID()), CFGrammar::getAttributedKind(attr, labelToKindMap[label]));
+                printf("callbar -  %s \n",  (grammar->symToStrDump(CFGrammar::getAttributedKind(attr, labelToKindMap[label]))).c_str());
                 addAttribute(labelToKindMap[label], attr);
             }
             // Get 'ret' edge : RetDirVF
@@ -539,10 +557,12 @@ CFLGraph* VFCFLGraphBuilder::buildBigraph(SVFG *graph, Kind startKind, GrammarBa
                 CFGrammar::Attribute attr =  attributedEdge->getCallSiteId();
                 addAttribute(edgeLabel, attr);
                 edgeLabel = CFGrammar::getAttributedKind(attr, edgeLabel);
+                printf("ret -  %s \n", (grammar->symToStrDump(edgeLabel)).c_str());
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getSrcID()), cflGraph->getGNode(edge->getDstID()), edgeLabel);
                 std::string label = kindToLabelMap[edgeLabel];
                 label.append("bar");   // for example Gep_i should be Gepbar_i, not Gep_ibar
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getDstID()), cflGraph->getGNode(edge->getSrcID()), CFGrammar::getAttributedKind(attr, labelToKindMap[label]));
+                printf("retbar -  %s \n",  (grammar->symToStrDump(CFGrammar::getAttributedKind(attr, labelToKindMap[label]))).c_str());
                 addAttribute(labelToKindMap[label], attr);
             }
             // Get 'ret' edge : RetIndVF
@@ -553,13 +573,18 @@ CFLGraph* VFCFLGraphBuilder::buildBigraph(SVFG *graph, Kind startKind, GrammarBa
                 CFGrammar::Attribute attr =  attributedEdge->getCallSiteId();
                 addAttribute(edgeLabel, attr);
                 edgeLabel = CFGrammar::getAttributedKind(attr, edgeLabel);
+                printf("ret -  %s \n", (grammar->symToStrDump(edgeLabel)).c_str());
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getSrcID()), cflGraph->getGNode(edge->getDstID()), edgeLabel);
                 std::string label = kindToLabelMap[edgeLabel];
                 label.append("bar");   // for example Gep_i should be Gepbar_i, not Gep_ibar
                 cflGraph->addCFLEdge(cflGraph->getGNode(edge->getDstID()), cflGraph->getGNode(edge->getSrcID()), CFGrammar::getAttributedKind(attr, labelToKindMap[label]));
+                printf("retbar -  %s \n",  (grammar->symToStrDump(CFGrammar::getAttributedKind(attr, labelToKindMap[label]))).c_str());
                 addAttribute(labelToKindMap[label], attr);
             }
         }
+    }
+    for (auto edge: cflGraph->getCFLEdges()){
+        printf(" %s ", (grammar->symToStrDump(edge->getEdgeKind())).c_str());
     }
     return cflGraph;
 }

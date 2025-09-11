@@ -1,0 +1,19 @@
+Start Kind:
+	A(3) 
+
+Epsilon Production:
+	A(3) -> epsilon(4) 
+	Abar(6) -> epsilon(4) 
+
+Single Production:
+	A(3) -> a(0) 
+	Abar(6) -> abar(7) 
+
+Binary Production:
+	A(3) -> A(3) A(3) 
+	A(3) -> call_1(1) X1_1(11) 
+	Abar(6) -> Abar(6) Abar(6) 
+	Abar(6) -> retbar_1(8) X0_1(10) 
+	X0_1(10) -> Abar(6) callbar_1(9) 
+	X1_1(11) -> A(3) ret_1(2) 
+

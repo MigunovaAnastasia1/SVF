@@ -391,7 +391,7 @@ class MatrixSolver
         void solve();
 
         /// Construct a set of terminals/nonterminals (taking into account the attributes), enumerate it and return its size
-        uint64_t enumerate(Map<std::string, Kind> kinds, CFGrammar::SymbolMap<Label, uint32_t>& enumerated_symbols);
+        void enumerate();
 
         /// Represent labeled graph as a set of adjacency matrices
         void graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm);

@@ -382,14 +382,25 @@ void POCRHybridSolver::meld_h(NodeID x, TreeNode* uNode, TreeNode* vNode)
 
 // На вход подаётся набор kind-ов: terminals/nonterminals.
 // По ним строится упорядоченное множество самих терминалов и нетерминалов уже с учётом аттрибутов.
-// Returns size of filled enumerated_symbols.
-uint64_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, CFGrammar::SymbolMap<Label, uint32_t>& enumerated_symbols){
+// Returns size of filled enumerated_symbols. 
+/*uint64_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, CFGrammar::SymbolMap<Label, uint32_t>& enumerated_symbols){
     uint32_t index = 0;
     Set<Kind> attributedKinds = grammar->getAttrSyms();
     for (auto str2kind: kinds){
         Label sym;
         Kind kind = str2kind.second;
         sym.kind = kind;
+        // printf("Kind: %s\n",(grammar->kindToStr(kind)).c_str());
+        for(auto [key, value]:grammar->getKindToAttrsMap()){
+            printf("Kind: %s\n",(grammar->kindToStr(key)).c_str());
+            for(auto i:value){
+                printf(" attr: %d ", i);
+            }
+        }
+        printf("grammar->getAttrSyms():\n");
+        for(auto vkind: grammar->getAttrSyms()){
+            printf("Kind: %s\n",(grammar->kindToStr(vkind)).c_str());
+        }
         if (attributedKinds.find(kind) != attributedKinds.end()){
             for(auto attri: grammar->getKindToAttrsMap().at(kind)){
                 sym.attribute = attri;
@@ -401,6 +412,58 @@ uint64_t MatrixSolver::enumerate(Map<std::string, Kind> kinds, CFGrammar::Symbol
     }
     return index;
 }
+*/
+
+void MatrixSolver::enumerate(){
+
+    //grammar->dump();
+    uint32_t nonterm_total = 0;
+    uint32_t term_total = 0;
+    for(auto pro: grammar->getEpsilonProds()){
+        if(enumerated_nonterminals.find(pro[0]) == enumerated_nonterminals.end()){
+            enumerated_nonterminals[pro[0]] = nonterm_total++;
+        }
+    }
+
+    for (auto sym2prods: grammar->getSingleRHSToProds())
+    {
+       for (auto pro: sym2prods.second) {
+        if(enumerated_nonterminals.find(pro[0]) == enumerated_nonterminals.end()){
+            enumerated_nonterminals[pro[0]] = nonterm_total++;
+        }
+        if(enumerated_terminals.find(pro[1]) == enumerated_terminals.end()){
+            enumerated_terminals[pro[1]] = term_total++;
+        }
+       }
+    }
+
+    for (auto sym2prods: grammar->getFirstRHSToProds())
+    {
+        for (auto pro: sym2prods.second) {
+
+            for (int i = 0; i<3; i++){
+                if ( (grammar->getTerminals()).find(grammar->kindToStr(pro[i].kind)) != (grammar->getTerminals()).end() ){
+                    if(enumerated_terminals.find(pro[i]) == enumerated_terminals.end()){
+                        enumerated_terminals[pro[i]] = term_total++;
+                    }
+                } else {
+                    if(enumerated_nonterminals.find(pro[i]) == enumerated_nonterminals.end()){
+                        enumerated_nonterminals[pro[i]] = nonterm_total++;
+                    }
+                }
+            }
+        }
+        
+    }
+    printf("Terminals:\n");
+    for (auto [term, index]: enumerated_terminals){
+        printf("Term %d is %s\n",index, (grammar->symToStrDump(term)).c_str());
+    }
+    printf("Nonterminals:\n");
+    for (auto [nonterm, index]: enumerated_nonterminals){
+        printf("Nonterm %d is %s\n",index, (grammar->symToStrDump(nonterm)).c_str());
+    }
+}
 
 void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm)
 {
@@ -409,10 +472,19 @@ void MatrixSolver::graphSVF2LAGraph(GrB_Matrix *adj_matrices, int64_t totalTerm)
     uint64_t totalNode = graph->getTotalNodeNum(); // uint32_t -> uint64_t
 
     for (auto edge: graph->getCFLEdges()){
-        uint64_t term_index = enumerated_terminals.at(edge->getEdgeKind());
+        /*Label sym;
+        sym.kind = 0;
+        sym.attribute = edge->getEdgeAttri();
+        printf("EdgeFlag is %lld\n", edge->getEdgeKind());
+        sym.variableAttribute = 0;
+        printf("Symbol is %s\n", (grammar->symToStrDump(sym)).c_str());
+        uint64_t term_index = enumerated_terminals.at(edge->getEdgeKind()); //FIX (abort)
+        printf("Тут\n");
         nodeID_pairs[term_index].first.push_back(edge->getSrcNode()->getId());
-        nodeID_pairs[term_index].second.push_back(edge->getDstNode()->getId());
+        nodeID_pairs[term_index].second.push_back(edge->getDstNode()->getId());*/
+        printf(" %s ", (grammar->symToStrDump(edge->getEdgeKind())).c_str());
     }
+    exit(0);
 
     for (int i = 0; i < totalTerm; ++i){
         uint64_t* row_indexes = (nodeID_pairs[i]).first.data();
@@ -473,7 +545,9 @@ void MatrixSolver::graphLAGraph2SVF(GrB_Matrix *nonterm_matrices, int64_t totalN
         bool values[nvals];
         GRB_TRY(GrB_Matrix_extractTuples_BOOL(row_indexes, column_indexes, values, &nvals, nonterm_matrices[i]));
         for(uint64_t j = 0; j < nvals; j++){
+            printf("Здесь\n");
             graph->addCFLEdge(graph->getGNode(row_indexes[j]), graph->getGNode(column_indexes[j]), enumerated_nonterminals.at(i));
+            printf("Тут\n");
         }
     }
 
@@ -481,8 +555,9 @@ void MatrixSolver::graphLAGraph2SVF(GrB_Matrix *nonterm_matrices, int64_t totalN
 
 void MatrixSolver::solve()
 {
-    int64_t totalTerm = enumerate(grammar->getTerminals(), enumerated_terminals);
-    int64_t totalNonterm = enumerate(grammar->getNonterminals(), enumerated_nonterminals);
+    enumerate();
+    int64_t totalTerm = enumerated_terminals.size();
+    int64_t totalNonterm = enumerated_nonterminals.size();
     int64_t totalRules = 0;
     for (auto sym2prods: grammar->getRawProductions()){
         totalRules += sym2prods.second.size();
